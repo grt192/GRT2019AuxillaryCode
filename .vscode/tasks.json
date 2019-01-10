@@ -1,0 +1,17 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run GUI",
+            "command": "java",
+            "windows": {
+                "command": "C:\\Program Files\\Java\\jdk1.8.0_181\\bin\\javac.exe"
+            },
+            "args": [
+                "${file}"
+            ]
+        }
+    ]
+}
