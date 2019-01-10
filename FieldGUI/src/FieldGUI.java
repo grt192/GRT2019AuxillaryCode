@@ -1,5 +1,3 @@
-package fieldgui;
-
 import java.text.DecimalFormat;
 
 import javafx.application.Application;
@@ -113,6 +111,11 @@ public class FieldGUI extends Application {
         stage.setResizable(false);
         stage.show();
         
+    }
+
+    //Called by NetworkClient when data is recieved
+    public void recieveData(String data) {
+
     }
    
 
