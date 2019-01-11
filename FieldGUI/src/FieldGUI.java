@@ -27,10 +27,15 @@ import javafx.scene.transform.Rotate;
  */
 public class FieldGUI extends Application {
     
-    
+    private NetworkClient client;
     
     @Override
     public void start(Stage stage) throws Exception {
+        client = new NetworkClient(this);
+        if (!client.connect()) {
+            System.out.println("FAILED TO CONNECT");
+            System.exit(1);
+        }
         GridPane root = new GridPane();
         
         DecimalFormat decFormat = new DecimalFormat("#.0");
@@ -115,7 +120,7 @@ public class FieldGUI extends Application {
 
     //Called by NetworkClient when data is recieved
     public void recieveData(String data) {
-
+        System.out.println(data);
     }
    
 
