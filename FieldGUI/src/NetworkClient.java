@@ -1,13 +1,14 @@
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.net.Socket;
+import java.util.Scanner;
 
 class NetworkClient extends Thread{
 
-    private FIeldGUI gui;
+    private FieldGUI gui;
 
     private Socket connection;
-    private PrintWriter output;
+    private PrintStream output;
     private Scanner input;
 
     public NetworkClient(FieldGUI gui) {
@@ -18,12 +19,12 @@ class NetworkClient extends Thread{
         try {
             connection = new Socket("roborio-192-frc.local", 5800);
             input = new Scanner(connection.getInputStream());
-            output = new PrintWriter(connection.getOutputStream());
+            output = new PrintStream(connection.getOutputStream());
+            return true;
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
-        return true;
     }
 
     public void run() {
@@ -34,7 +35,7 @@ class NetworkClient extends Thread{
     }
 
     public void sendData(String data) {
-        output.println(data);
+        output.print(data + "\n");
     }
 
 }
