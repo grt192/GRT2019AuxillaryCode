@@ -88,7 +88,7 @@ public class FieldGUI extends Application {
                 rectangle.setY(e.getY() + 125);
                 
             }
-            client.sendData("click");
+            client.sendData("(" + decFormat.format(e.getX() * 0.3048) + ", " + decFormat.format(e.getY() * 0.3048) + ")");
             System.out.print(coord + "\n");
             label.setText(coord);
         });
