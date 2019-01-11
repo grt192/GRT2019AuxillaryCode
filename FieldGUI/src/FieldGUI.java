@@ -1,5 +1,3 @@
-package fieldgui;
-
 import java.text.DecimalFormat;
 
 import javafx.application.Application;
@@ -29,10 +27,15 @@ import javafx.scene.transform.Rotate;
  */
 public class FieldGUI extends Application {
     
-    
+    private NetworkClient client;
     
     @Override
     public void start(Stage stage) throws Exception {
+        client = new NetworkClient(this);
+        if (!client.connect()) {
+            System.out.println("FAILED TO CONNECT");
+            System.exit(1);
+        }
         GridPane root = new GridPane();
         
         DecimalFormat decFormat = new DecimalFormat("#.0");
@@ -85,7 +88,7 @@ public class FieldGUI extends Application {
                 rectangle.setY(e.getY() + 125);
                 
             }
-            
+            client.sendData("click");
             System.out.print(coord + "\n");
             label.setText(coord);
         });
@@ -113,6 +116,11 @@ public class FieldGUI extends Application {
         stage.setResizable(false);
         stage.show();
         
+    }
+
+    //Called by NetworkClient when data is recieved
+    public void recieveData(String data) {
+        System.out.println(data);
     }
    
 
