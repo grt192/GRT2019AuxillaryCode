@@ -35,7 +35,7 @@ class NetworkClient extends Thread{
     }
 
     public void sendData(String data) {
-        output.print(data + "\n");
+        output.println(data);
     }
 
 }
