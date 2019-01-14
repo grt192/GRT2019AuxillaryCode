@@ -43,7 +43,7 @@ public class FieldGUI extends Application {
         Label label = new Label("(x, y) --> ");
         label.setFont(new Font("Arial", 15));
 
-        Image field = new Image(getClass().getResourceAsStream("field2.png"));
+        Image field = new Image(getClass().getResourceAsStream("field_test.png"));
         ImageView img = new ImageView(field);
         
         img.setPickOnBounds(true);
@@ -84,8 +84,9 @@ public class FieldGUI extends Application {
             
             // this is sort of a dumb way to move the rectangle, but I can't find any other option //
             if(((e.getX() / 810) * 100) > 7.3 && ((e.getY() / 810) * 100) > 1.1 && ((e.getX() / 810) * 100) < 89 && ((e.getY() / 810) * 100) < 73.8){
-                rectangle.setX(e.getX() + 35);
-                rectangle.setY(e.getY() + 125);
+                // getting rid of rectangle drawer //
+                //rectangle.setX(e.getX() + 35);
+                //rectangle.setY(e.getY() + 125);
                 
             }
             client.sendData("(" + decFormat.format(e.getX() * 0.3048) + ", " + decFormat.format(e.getY() * 0.3048) + ")");
