@@ -20,6 +20,9 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Rotate;
+import javafx.scene.control.Button;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 
 /**
  *
@@ -37,6 +40,11 @@ public class FieldGUI extends Application {
             System.exit(1);
         }
         GridPane root = new GridPane();
+
+        Button b = new Button("PAUSE"); 
+        boolean running  = true;
+        
+        b.setOnAction(buttonHandler);
         
         DecimalFormat decFormat = new DecimalFormat("#.0");
         
@@ -123,6 +131,22 @@ public class FieldGUI extends Application {
     public void recieveData(String data) {
         System.out.println(data);
     }
+
+    EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
+        @Override
+        public void handle(ActionEvent event) {
+            
+            if(running){
+                b.setText("RESUME");
+                client.sendData("paused");
+                running = false;
+            } else {
+                b.setText("PAUSE");
+                client.sendData("resumed");
+                running = true;
+            }
+        }
+    };
    
 
     //EventHandler<MouseEvent> mouseHandler = new EventHandler<MouseEvent>() {
