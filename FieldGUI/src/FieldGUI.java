@@ -44,7 +44,7 @@ public class FieldGUI extends Application {
         Button b = new Button("PAUSE"); 
         boolean running  = true;
         
-        b.setOnAction(buttonHandler);
+        //b.setOnAction(buttonHandler);
         
         DecimalFormat decFormat = new DecimalFormat("#.0");
         
@@ -87,8 +87,9 @@ public class FieldGUI extends Application {
         root.add(rectangle, 0, 0);
         
         img.setOnMouseClicked((MouseEvent e) -> {
-            
-            String coord = "(x, y) --> " + "(" + decFormat.format(((e.getX() / 810) * 100)) + "%" + ", " + decFormat.format(((e.getY() / 450) * 100)) + "%" + ")";
+            double x = e.getX() / img.getFitWidth();
+            double y = e.getY() / img.getFitHeight();
+            String coord = "(x, y) --> " + "(" + decFormat.format((x * 100)) + "%" + ", " + decFormat.format((y * 100)) + "%" + ")";
             
             // this is sort of a dumb way to move the rectangle, but I can't find any other option //
             if(((e.getX() / 810) * 100) > 7.3 && ((e.getY() / 810) * 100) > 1.1 && ((e.getX() / 810) * 100) < 89 && ((e.getY() / 810) * 100) < 73.8){
@@ -97,7 +98,7 @@ public class FieldGUI extends Application {
                 //rectangle.setY(e.getY() + 125);
                 
             }
-            client.sendData(decFormat.format(e.getX() * 0.3048) + ", " + decFormat.format(e.getY() * 0.3048));
+            client.sendData(((x - 0.28) * 4.2672/0.44) + " " + (y * 4.2672));
             System.out.print(coord + "\n");
             label.setText(coord);
         });
@@ -132,21 +133,21 @@ public class FieldGUI extends Application {
         System.out.println(data);
     }
 
-    EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
-        @Override
-        public void handle(ActionEvent event) {
+    // EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
+    //     @Override
+    //     public void handle(ActionEvent event) {
             
-            if(running){
-                b.setText("RESUME");
-                client.sendData("paused");
-                running = false;
-            } else {
-                b.setText("PAUSE");
-                client.sendData("resumed");
-                running = true;
-            }
-        }
-    };
+    //         if(running){
+    //             b.setText("RESUME");
+    //             client.sendData("paused");
+    //             running = false;
+    //         } else {
+    //             b.setText("PAUSE");
+    //             client.sendData("resumed");
+    //             running = true;
+    //         }
+    //     }
+    // };
    
 
     //EventHandler<MouseEvent> mouseHandler = new EventHandler<MouseEvent>() {
