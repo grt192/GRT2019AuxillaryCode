@@ -98,7 +98,7 @@ public class FieldGUI extends Application {
                 //rectangle.setY(e.getY() + 125);
                 
             }
-            client.sendData(((x - 0.28) * 4.2672/0.44) + " " + (y * 4.2672));
+            client.sendData("move " + ((x - 0.28) * 4.2672/0.44) + " " + (y * 4.2672));
             System.out.print(coord + "\n");
             label.setText(coord);
         });
