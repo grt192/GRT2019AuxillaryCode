@@ -82,9 +82,9 @@ public class FieldGUI extends Application {
         root.add(img, 0, 0);
         root.add(label, 0, 1);
         
-        Rectangle rectangle = new Rectangle(92, 130, 30, 20);
-        rectangle.setManaged(false);
-        root.add(rectangle, 0, 0);
+        //Rectangle rectangle = new Rectangle(92, 130, 30, 20);
+        // rectangle.setManaged(false);
+        // root.add(rectangle, 0, 0);
         
         img.setOnMouseClicked((MouseEvent e) -> {
             double x = e.getX() / img.getFitWidth();
