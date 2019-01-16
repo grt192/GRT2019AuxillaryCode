@@ -51,7 +51,7 @@ public class FieldGUI extends Application {
         Label label = new Label("(x, y) --> ");
         label.setFont(new Font("Arial", 15));
 
-        Image field = new Image(getClass().getResourceAsStream("field_test.png"));
+        Image field = new Image(getClass().getResourceAsStream("field3.png"));
         ImageView img = new ImageView(field);
         
         img.setPickOnBounds(true);
@@ -97,7 +97,7 @@ public class FieldGUI extends Application {
                 //rectangle.setY(e.getY() + 125);
                 
             }
-            client.sendData(decFormat.format(e.getX() * 0.3048) + ", " + decFormat.format(e.getY() * 0.3048));
+            client.sendData(decFormat.format(((e.getX() / 810) * 100)) + " " + decFormat.format(((e.getY() / 450) * 100)));
             System.out.print(coord + "\n");
             label.setText(coord);
         });
