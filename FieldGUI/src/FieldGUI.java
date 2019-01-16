@@ -51,7 +51,7 @@ public class FieldGUI extends Application {
         Label label = new Label("(x, y) --> ");
         label.setFont(new Font("Arial", 15));
 
-        Image field = new Image(getClass().getResourceAsStream("field_test.png"));
+        Image field = new Image(getClass().getResourceAsStream("field3.png"));
         ImageView img = new ImageView(field);
         
         img.setPickOnBounds(true);
