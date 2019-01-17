@@ -87,7 +87,7 @@ public class FieldGUI extends Application {
         // root.add(rectangle, 0, 0);
         
         img.setOnMouseClicked((MouseEvent e) -> {
-            double x = e.getX() / img.getFitWidth();
+            double x = e.getX() / (0.65 * img.getFitWidth());
             double y = e.getY() / img.getFitHeight();
             String coord = "(x, y) --> " + "(" + decFormat.format((x * 100)) + "%" + ", " + decFormat.format((y * 100)) + "%" + ")";
             
@@ -98,7 +98,7 @@ public class FieldGUI extends Application {
                 //rectangle.setY(e.getY() + 125);
                 
             }
-            client.sendData("move " + ((x - 0.28) * 3.9624/0.44) + " " + (y * 3.6576));
+            client.sendData("move " + (x * 3.9624) + " " + (y * 3.6576));
             System.out.print(coord + "\n");
             label.setText(coord);
         });
