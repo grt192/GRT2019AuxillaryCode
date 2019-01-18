@@ -3,13 +3,13 @@ import cv2
 import numpy as np
 import math
 
-## Detect tape from "alignment lines"
+## Detect hatch vision tape in Deep Space 2019
 #
-# Add some description of your module here.
+#
 #
 # @author GRT
 # 
-# @videomapping YUYV 640 480 30 YUYV 640 480 30 GRT TapeDetect
+# @videomapping YUYV 640 480 30 YUYV 640 480 30 GRT Vision2019
 # @email gunnrobotics192@gmail.com
 # @address 123 first street, Los Angeles CA 90012, USA
 # @copyright Copyright (C) 2018 by GRT
@@ -20,13 +20,13 @@ import math
 # @distribution Unrestricted
 # @restrictions None
 # @ingroup modules
-class TapeDetect:
+class Vision2019:
     # ###################################################################################################
     ## Constructor
     def __init__(self):
         print(cv2.__version__)
-        self.HSVmin = np.array([ 0,  0, 180], dtype=np.uint8)
-        self.HSVmax = np.array([ 255, 50, 255], dtype=np.uint8)
+        self.HSVmin = np.array([ 0,  50, 160], dtype=np.uint8)
+        self.HSVmax = np.array([ 255, 255, 255], dtype=np.uint8)
 
         # Instantiate a JeVois Timer to measure our processing framerate:
         self.timer = jevois.Timer("processing timer", 100, jevois.LOG_INFO)
@@ -68,26 +68,39 @@ class TapeDetect:
         # cv2.drawContours(inimg, biggest5, -1, (255,0,0), 3)
         # cv2.drawContours(inimg, contours, -1, (255,0,0), 3)
         
-        # 5 largest objects
-        contours = sorted(contours, key = cv2.contourArea, reverse = True)[:5]
+        # 2 largest objects
+        two_contours = sorted(contours, key = cv2.contourArea, reverse = True)[:2]
 
-        if contours:
-            largest = contours[0]
-            # epsilon = 0.03 * cv2.arcLength(largest, True)
-            epsilon = 0.5 * cv2.arcLength(largest, True)
-            approx = cv2.approxPolyDP(largest, epsilon, False)
+        two_present = (len(two_contours) == 2)
+        
+        cv2.putText(inimg, "JeVois Python Sandbox", (3, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255),
+                     1, cv2.LINE_AA)
+        
+        for contour in two_contours:
+            epsilon = 0.01 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, False)
             rows,cols = img.shape[:2]
             vx,vy,x,y = cv2.fitLine(approx, cv2.DIST_L2,0,0.01,0.01)
             lefty = int((-x*vy/vx) + y)
             righty = int(((cols-x)*vy/vx)+y)
 
             try:
-                cv2.line(inimg,(cols-1,righty),(0,lefty),(0,255,0),2)
-            except:
-                pass
+                rect = cv2.minAreaRect(approx)
+                box = cv2.boxPoints(rect)
 
-            cv2.drawContours(inimg, [approx], -1, (255,0,0), 3)
+                box = np.int0(box)
+                cv2.drawContours(inimg,[box],0,(0,0,255),2)
 
+                angle = self.calc_angle(box)
+                self.draw_text(inimg, math.degrees(angle), box[0])
+
+                jevois.sendSerial(str(box))
+            except Exception as e:
+                jevois.sendSerial(str(e))
+
+            #cv2.drawContours(inimg, [contour], -1, (255,0,0), 3)
+
+        #jevois.sendSerial(".  .")
         # for c in contours:
             
 
@@ -96,3 +109,29 @@ class TapeDetect:
         # Convert our output image to video output format and send to host over USB:
         outframe.sendCv(inimg)
         
+
+    def calc_angle(self, points):
+        """
+        Returns the angle a rectangle is pointing towards
+
+        Points should be ordered so that lowest is first, rest follow counter clockwise
+        
+        Down is 0, right is pi/2
+        -pi/2 <= n <= pi/2
+        """
+        lowest_point = points[0]
+        far_point = None
+        if (self.calc_dist(points[0], points[1]) > self.calc_dist(points[0], points[3])):
+            far_point = points[1]
+        else:
+            far_point = points[3]
+
+        return math.atan( (lowest_point[0] - far_point[0]) / abs(lowest_point[1] - far_point[1]) )
+
+
+    def calc_dist(self, point1, point2):
+        return math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
+
+
+    def draw_text(self, img, text, point):
+        cv2.putText(img, str(text), (point[0]-20, point[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)

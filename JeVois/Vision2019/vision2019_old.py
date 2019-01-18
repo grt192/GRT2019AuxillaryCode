@@ -9,7 +9,7 @@ import math
 #
 # @author GRT
 # 
-# @videomapping YUYV 640 480 30 YUYV 640 480 30 GRT TapeDetect
+# @videomapping YUYV 640 480 30 YUYV 640 480 30 GRT Vision2019
 # @email gunnrobotics192@gmail.com
 # @address 123 first street, Los Angeles CA 90012, USA
 # @copyright Copyright (C) 2018 by GRT
@@ -20,7 +20,7 @@ import math
 # @distribution Unrestricted
 # @restrictions None
 # @ingroup modules
-class TapeDetect:
+class Vision2019:
     # ###################################################################################################
     ## Constructor
     def __init__(self):
@@ -74,7 +74,7 @@ class TapeDetect:
         if contours:
             largest = contours[0]
             # epsilon = 0.03 * cv2.arcLength(largest, True)
-            epsilon = 0.5 * cv2.arcLength(largest, True)
+            epsilon = 0.005 * cv2.arcLength(largest, True)
             approx = cv2.approxPolyDP(largest, epsilon, False)
             rows,cols = img.shape[:2]
             vx,vy,x,y = cv2.fitLine(approx, cv2.DIST_L2,0,0.01,0.01)
