@@ -30,6 +30,34 @@ class Vision2019:
 
         # Instantiate a JeVois Timer to measure our processing framerate:
         self.timer = jevois.Timer("processing timer", 100, jevois.LOG_INFO)
+
+        self.cameraMatrix = np.array([
+                                         [ 502.299385, 0,          320 ],
+                                         [ 0,          492.072922, 240 ],
+                                         [ 0,          0,          1   ]
+                                     ])
+
+        self.objPoints = np.array([
+                                      [ -5.377, -5.325, 0 ],
+                                      [ -7.313, -4.824, 0 ],
+                                      [ -5.936, 0.501,  0 ],
+                                      [ -4,     0,      0 ],
+                                      [ 5.377,  -5.325, 0 ],
+                                      [ 4,      0,      0 ],
+                                      [ 5.936,  0.501,  0 ],
+                                      [ 7.313, -4.824,  0 ]
+                                  ])
+
+        self.distCoeffs = np.array([])
+
+        cpf = "/jevois/share/camera/calibration{}x{}.yaml".format(640, 480)
+        fs = cv2.FileStorage(cpf, cv2.FILE_STORAGE_READ)
+        if (fs.isOpened()):
+            self.cameraMatrix = fs.getNode("camera_matrix").mat()
+            self.distCoeffs = fs.getNode("distortion_coefficients").mat()
+            jevois.LINFO("Loaded camera calibration from {}".format(cpf))
+        else:
+            jevois.LFATAL("Failed to read camera parameters from file [{}]".format(cpf))
         
     # ###################################################################################################
     ## Process function with USB output
@@ -73,9 +101,11 @@ class Vision2019:
 
         two_present = (len(two_contours) == 2)
         
-        cv2.putText(inimg, "JeVois Python Sandbox", (3, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255),
+        cv2.putText(inimg, "GRT 2019 Vision", (5, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255),
                      1, cv2.LINE_AA)
         
+        points = []
+
         for contour in two_contours:
             epsilon = 0.01 * cv2.arcLength(contour, True)
             approx = cv2.approxPolyDP(contour, epsilon, False)
@@ -85,18 +115,50 @@ class Vision2019:
             righty = int(((cols-x)*vy/vx)+y)
 
             try:
-                rect = cv2.minAreaRect(approx)
-                box = cv2.boxPoints(rect)
-
-                box = np.int0(box)
-                cv2.drawContours(inimg,[box],0,(0,0,255),2)
-
-                angle = self.calc_angle(box)
-                self.draw_text(inimg, math.degrees(angle), box[0])
-
-                jevois.sendSerial(str(box))
+                pass
             except Exception as e:
                 jevois.sendSerial(str(e))
+
+            rect = cv2.minAreaRect(approx)
+            box = cv2.boxPoints(rect)
+
+            box = np.int0(box)
+            angle = self.calc_angle(box)
+            # self.draw_text(inimg, math.degrees(angle), box[0])
+
+
+            # points.append(approx) #USE POLYGON
+            # cv2.drawContours(inimg,[approx],0,(0,0,255),2)
+
+            points.append(box) #USE RECTANGLE
+            cv2.drawContours(inimg,[box],0,(0,0,255),2)
+
+
+
+            # imgPoints = np.append(imgPoints, box)
+
+        # imgPoints = imgPoints.reshape(-1, 2)
+        # jevois.sendSerial(str(imgPoints))
+
+        if two_present:
+            #comparing x value of first point in both rectangles since order of solvepnp matters
+            if points[0][0][0] < points[1][0][0]:
+                imgPoints = np.append(np.append(np.array([]), points[0]), points[1])
+            else:
+                imgPoints = np.append(np.append(np.array([]), points[1]), points[0])
+
+            imgPoints = imgPoints.reshape(-1, 2)
+
+            jevois.sendSerial(str(imgPoints.shape))
+
+            retval, revec, tvec = cv2.solvePnP(self.objPoints, imgPoints, self.cameraMatrix, self.distCoeffs)
+            # jevois.sendSerial(str(retval))
+            # jevois.sendSerial(str(revec))
+            jevois.sendSerial(str(revec))
+            # jevois.sendSerial(".   .")
+            self.draw_text(inimg, "translation: x{:=5.2f} y{:=3.2f} z{:=3.2f}".format(tvec[0][0], tvec[1][0], tvec[2][0]), (30, 30))
+            self.draw_text(inimg, "rotation: x{:=3.2f} y{:=3.2f} z{:=3.2f}".format(math.degrees(revec[0][0]), math.degrees(revec[1][0]), math.degrees(revec[2][0])), (30, 45))
+
 
             #cv2.drawContours(inimg, [contour], -1, (255,0,0), 3)
 
@@ -133,5 +195,5 @@ class Vision2019:
         return math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
 
 
-    def draw_text(self, img, text, point):
-        cv2.putText(img, str(text), (point[0]-20, point[1]+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)
+    def draw_text(self, img, text, point, offset=0):
+        cv2.putText(img, str(text), (int(point[0]-20), int(point[1]+20 + offset)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)
