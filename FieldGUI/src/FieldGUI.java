@@ -97,7 +97,7 @@ public class FieldGUI extends Application {
         }
         
         img.setOnMouseClicked((MouseEvent e) -> {
-            double x = e.getX() / img.getFitWidth();
+            double x = e.getX() / (0.65 * img.getFitWidth());
             double y = e.getY() / img.getFitHeight();
             String coord = "(x, y) --> " + "(" + decFormat.format((x * 100)) + "%" + ", " + decFormat.format((y * 100)) + "%" + ")";
 
