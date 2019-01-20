@@ -92,8 +92,8 @@ public class FieldGUI extends Application {
             double x = Double.parseDouble(message[1]);
             double y = Double.parseDouble(message[2]);
 
-            rectangle.setX(x);
-            rectangle.setY(y);
+            rectangle.setX((x + 0.28) * 0.44/4.2672);
+            rectangle.setY(y / 4.2672);
         }
         
         img.setOnMouseClicked((MouseEvent e) -> {
