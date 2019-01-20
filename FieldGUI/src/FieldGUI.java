@@ -82,22 +82,25 @@ public class FieldGUI extends Application {
         root.add(img, 0, 0);
         root.add(label, 0, 1);
         
-        //Rectangle rectangle = new Rectangle(92, 130, 30, 20);
-        // rectangle.setManaged(false);
-        // root.add(rectangle, 0, 0);
+        Rectangle rectangle = new Rectangle(92, 130, 30, 20);
+        rectangle.setManaged(false);
+        root.add(rectangle, 0, 2);
+
+        String input = client.readLine();
+        while(input != ""){
+            String[] message = input.split(" ");
+            double x = Double.parseDouble(message[1]);
+            double y = Double.parseDouble(message[2]);
+
+            rectangle.setX(x);
+            rectangle.setY(y);
+        }
         
         img.setOnMouseClicked((MouseEvent e) -> {
             double x = e.getX() / img.getFitWidth();
             double y = e.getY() / img.getFitHeight();
             String coord = "(x, y) --> " + "(" + decFormat.format((x * 100)) + "%" + ", " + decFormat.format((y * 100)) + "%" + ")";
-            
-            // this is sort of a dumb way to move the rectangle, but I can't find any other option //
-            if(((e.getX() / 810) * 100) > 7.3 && ((e.getY() / 810) * 100) > 1.1 && ((e.getX() / 810) * 100) < 89 && ((e.getY() / 810) * 100) < 73.8){
-                // getting rid of rectangle drawer //
-                //rectangle.setX(e.getX() + 35);
-                //rectangle.setY(e.getY() + 125);
-                
-            }
+
             client.sendData("move " + ((x - 0.28) * 4.2672/0.44) + " " + (y * 4.2672));
             System.out.print(coord + "\n");
             label.setText(coord);
