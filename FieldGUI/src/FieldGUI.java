@@ -129,7 +129,7 @@ public class FieldGUI extends Application {
         double x = Double.parseDouble(message[1]);
         double y = Double.parseDouble(message[2]);
 
-        rectangle.setX(x * 10);
+        rectangle.setX((x * 10) + 265);
         rectangle.setY(y * 10);
     }
 
