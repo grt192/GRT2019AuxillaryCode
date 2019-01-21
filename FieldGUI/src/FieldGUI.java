@@ -40,6 +40,7 @@ public class FieldGUI extends Application {
             System.out.println("FAILED TO CONNECT");
             System.exit(1);
         }
+        client.start();
         GridPane root = new GridPane();
 
         //Button b = new Button("PAUSE"); 
@@ -91,7 +92,7 @@ public class FieldGUI extends Application {
             double y = e.getY() / img.getFitHeight();
             String coord = "(x, y) --> " + "(" + decFormat.format((x * 100)) + "%" + ", " + decFormat.format((y * 100)) + "%" + ")";
 
-            client.sendData("move " + ((x - 0.28) * 4.2672/0.44) + " " + (y * 4.2672));
+            client.sendData("move " + (x * 14 * 12) + " " + (y * 14 * 12));
             System.out.print(coord + "\n");
             label.setText(coord);
         });
