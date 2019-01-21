@@ -31,7 +31,7 @@ import javafx.event.EventHandler;
 public class FieldGUI extends Application {
     
     private NetworkClient client;
-    private String input;
+    private Rectangle rectangle = new Rectangle(92, 130, 30, 20);
     
     @Override
     public void start(Stage stage) throws Exception {
@@ -42,8 +42,8 @@ public class FieldGUI extends Application {
         }
         GridPane root = new GridPane();
 
-        Button b = new Button("PAUSE"); 
-        boolean running  = true;
+        //Button b = new Button("PAUSE"); 
+        //boolean running  = true;
         
         //b.setOnAction(buttonHandler);
         
@@ -82,19 +82,9 @@ public class FieldGUI extends Application {
         
         root.add(img, 0, 0);
         root.add(label, 0, 1);
-        
-        Rectangle rectangle = new Rectangle(92, 130, 30, 20);
+
         rectangle.setManaged(false);
         root.add(rectangle, 0, 2);
-
-        while(input != ""){
-            String[] message = input.split(" ");
-            double x = Double.parseDouble(message[1]);
-            double y = Double.parseDouble(message[2]);
-
-            rectangle.setX((x + 0.28) * 0.44/4.2672);
-            rectangle.setY(y / 4.2672);
-        }
         
         img.setOnMouseClicked((MouseEvent e) -> {
             double x = e.getX() / (0.65 * img.getFitWidth());
@@ -134,8 +124,12 @@ public class FieldGUI extends Application {
     //Called by NetworkClient when data is recieved
     public void recieveData(String data) {
         System.out.println(data);
-        input = data;
+        String[] message = data.split(" ");
+        double x = Double.parseDouble(message[1]);
+        double y = Double.parseDouble(message[2]);
 
+        rectangle.setX((x + 0.28) * 0.44/4.2672);
+        rectangle.setY(y / 4.2672);
     }
 
     // EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
