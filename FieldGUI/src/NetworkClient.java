@@ -2,7 +2,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.util.Scanner;
-import java.io.InputStream;
 
 class NetworkClient extends Thread{
 
@@ -11,7 +10,6 @@ class NetworkClient extends Thread{
     private Socket connection;
     private PrintStream output;
     private Scanner input;
-    private InputStream Sinput;
 
     public NetworkClient(FieldGUI gui) {
         this.gui = gui;
@@ -34,17 +32,6 @@ class NetworkClient extends Thread{
             String data = input.nextLine();
             gui.recieveData(data);
         }
-    }
-
-    public String readLine() {
-        try {
-            if (input == null || Sinput.available() == 0)
-                return "";
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "";
-        }
-        return input.nextLine();
     }
 
     public void sendData(String data) {

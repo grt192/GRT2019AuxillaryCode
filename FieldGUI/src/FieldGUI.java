@@ -31,6 +31,7 @@ import javafx.event.EventHandler;
 public class FieldGUI extends Application {
     
     private NetworkClient client;
+    private String input;
     
     @Override
     public void start(Stage stage) throws Exception {
@@ -86,7 +87,6 @@ public class FieldGUI extends Application {
         rectangle.setManaged(false);
         root.add(rectangle, 0, 2);
 
-        String input = client.readLine();
         while(input != ""){
             String[] message = input.split(" ");
             double x = Double.parseDouble(message[1]);
@@ -134,6 +134,8 @@ public class FieldGUI extends Application {
     //Called by NetworkClient when data is recieved
     public void recieveData(String data) {
         System.out.println(data);
+        input = data;
+
     }
 
     // EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
