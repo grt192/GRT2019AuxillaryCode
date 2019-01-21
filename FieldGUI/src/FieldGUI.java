@@ -31,7 +31,7 @@ import javafx.event.EventHandler;
 public class FieldGUI extends Application {
     
     private NetworkClient client;
-    private Rectangle rectangle = new Rectangle(92, 130, 30, 20);
+    private Rectangle rectangle = new Rectangle(265, 130, 30, 20);
     
     @Override
     public void start(Stage stage) throws Exception {
@@ -129,8 +129,8 @@ public class FieldGUI extends Application {
         double x = Double.parseDouble(message[1]);
         double y = Double.parseDouble(message[2]);
 
-        rectangle.setX((x + 0.28) * 0.44/4.2672);
-        rectangle.setY(y / 4.2672);
+        rectangle.setX(x * 10);
+        rectangle.setY(y * 10);
     }
 
     // EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
