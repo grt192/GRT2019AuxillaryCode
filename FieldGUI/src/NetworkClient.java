@@ -17,7 +17,7 @@ class NetworkClient extends Thread{
 
     public boolean connect() {
         try {
-            connection = new Socket("roborio-192-frc.local", 5800);
+            connection = new Socket("10.1.92.2", 5800);
             input = new Scanner(connection.getInputStream());
             output = new PrintStream(connection.getOutputStream());
             return true;

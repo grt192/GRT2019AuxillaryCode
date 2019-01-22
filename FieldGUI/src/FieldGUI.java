@@ -9,6 +9,7 @@ import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.Image;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
@@ -28,10 +29,19 @@ import javafx.event.EventHandler;
  *
  * @author audrey x
  */
+
+ // so i don't foget: rectangle disappears at certain places on the screen
+ // the locations change every time
+ // has nothing to do with the actual image
+ // has nothing to do with the width and height changing
+ // has nothing to do with the background color
+ // has nothing to do with the location of the robot (aka the robot does not disappear because it's on the blue tape rectangle)
+ // has nothing to do with the type of pane that is being used
+
 public class FieldGUI extends Application {
     
     private NetworkClient client;
-    private Rectangle rectangle = new Rectangle(178, 80, 90, 90);
+    private Rectangle rectangle = new Rectangle(0, 0, 90, 90);
     
     @Override
     public void start(Stage stage) throws Exception {
@@ -41,7 +51,9 @@ public class FieldGUI extends Application {
             System.exit(1);
         }
         client.start();
-        GridPane root = new GridPane();
+
+        Pane root = new Pane();
+        //GridPane root = new GridPane();
 
         //Button b = new Button("PAUSE"); 
         //boolean running  = true;
@@ -60,33 +72,31 @@ public class FieldGUI extends Application {
         img.setPreserveRatio(true);
 
         img.setFitWidth(810);
-        img.setFitHeight(450);
-        
-        root.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
-        
-        root.setPadding(new Insets(100, 100, 100, 100));
-        
-        RowConstraints rcIm = new RowConstraints();
-        rcIm.setPercentHeight(80);
-        rcIm.setValignment(VPos.CENTER);
-        root.getRowConstraints().add(rcIm);
-        
-        RowConstraints rcLab = new RowConstraints();
-        rcLab.setPercentHeight(20);
-        rcLab.setValignment(VPos.CENTER);
-        root.getRowConstraints().add(rcLab);
-        
-        ColumnConstraints cc = new ColumnConstraints();
-        cc.setHalignment(HPos.CENTER);
-        cc.setPercentWidth(100);
-        root.getColumnConstraints().add(cc);
-        
-        root.add(img, 0, 0);
-        root.add(label, 0, 1);
+        img.setFitHeight(700);
 
         rectangle.setManaged(false);
-        root.add(rectangle, 0, 2);
         
+        root.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+        root.getChildren().addAll(img, rectangle);
+        
+        // RowConstraints rcIm = new RowConstraints();
+        // rcIm.setPercentHeight(80);
+        // rcIm.setValignment(VPos.CENTER);
+        // root.getRowConstraints().add(rcIm);
+        
+        // RowConstraints rcLab = new RowConstraints();
+        // rcLab.setPercentHeight(20);
+        // rcLab.setValignment(VPos.CENTER);
+        // root.getRowConstraints().add(rcLab);
+        
+        // ColumnConstraints cc = new ColumnConstraints();
+        // cc.setHalignment(HPos.CENTER);
+        // cc.setPercentWidth(100);
+        // root.getColumnConstraints().add(cc);
+        
+        // root.add(img, 0, 0);
+        // root.add(label, 0, 1);
+
         img.setOnMouseClicked((MouseEvent e) -> {
             double x = e.getX() / (0.65 * img.getFitWidth());
             double y = e.getY() / img.getFitHeight();
@@ -124,13 +134,15 @@ public class FieldGUI extends Application {
 
     //Called by NetworkClient when data is recieved
     public void recieveData(String data) {
-        System.out.println(data);
+        //System.out.println(data);
         String[] message = data.split(" ");
         double x = Double.parseDouble(message[1]);
         double y = Double.parseDouble(message[2]);
 
-        rectangle.setX((x * 6.4) + 178);
-        rectangle.setY((y * 5.48) + 80);
+        System.out.println(rectangle.getWidth() + "," + rectangle.getHeight());
+
+        rectangle.setX(x * 3);
+        rectangle.setY(y * 3);
     }
 
     // EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
