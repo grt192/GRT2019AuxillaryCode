@@ -139,8 +139,6 @@ public class FieldGUI extends Application {
         double x = Double.parseDouble(message[1]);
         double y = Double.parseDouble(message[2]);
 
-        System.out.println(rectangle.getWidth() + "," + rectangle.getHeight());
-
         rectangle.setX(x * 3);
         rectangle.setY(y * 3);
     }
