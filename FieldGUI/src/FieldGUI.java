@@ -20,6 +20,7 @@ import javafx.scene.text.Font;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Circle;
 import javafx.scene.transform.Rotate;
 import javafx.scene.control.Button;
 import javafx.event.ActionEvent;
@@ -41,7 +42,8 @@ import javafx.event.EventHandler;
 public class FieldGUI extends Application {
     
     private NetworkClient client;
-    private Rectangle rectangle = new Rectangle(0, 0, 90, 90);
+
+    private Circle circle;
     
     @Override
     public void start(Stage stage) throws Exception {
@@ -52,13 +54,13 @@ public class FieldGUI extends Application {
         }
         client.start();
 
-        Pane root = new Pane();
-        //GridPane root = new GridPane();
+        circle = new Circle();
+        circle.setRadius(45);
+        circle.setCenterX(0);
+        circle.setCenterY(0);
+        circle.setManaged(false);
 
-        //Button b = new Button("PAUSE"); 
-        //boolean running  = true;
-        
-        //b.setOnAction(buttonHandler);
+        Pane root = new Pane();
         
         DecimalFormat decFormat = new DecimalFormat("#.0");
         
@@ -71,31 +73,11 @@ public class FieldGUI extends Application {
         img.setPickOnBounds(true);
         img.setPreserveRatio(true);
 
-        img.setFitWidth(810);
+        img.setFitWidth(870);
         img.setFitHeight(700);
-
-        rectangle.setManaged(false);
         
         root.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
-        root.getChildren().addAll(img, rectangle);
-        
-        // RowConstraints rcIm = new RowConstraints();
-        // rcIm.setPercentHeight(80);
-        // rcIm.setValignment(VPos.CENTER);
-        // root.getRowConstraints().add(rcIm);
-        
-        // RowConstraints rcLab = new RowConstraints();
-        // rcLab.setPercentHeight(20);
-        // rcLab.setValignment(VPos.CENTER);
-        // root.getRowConstraints().add(rcLab);
-        
-        // ColumnConstraints cc = new ColumnConstraints();
-        // cc.setHalignment(HPos.CENTER);
-        // cc.setPercentWidth(100);
-        // root.getColumnConstraints().add(cc);
-        
-        // root.add(img, 0, 0);
-        // root.add(label, 0, 1);
+        root.getChildren().addAll(img, circle);
 
         img.setOnMouseClicked((MouseEvent e) -> {
             double x = e.getX() / (0.65 * img.getFitWidth());
@@ -106,22 +88,6 @@ public class FieldGUI extends Application {
             System.out.print(coord + "\n");
             label.setText(coord);
         });
-        
-        //int numRows = 2;
-        //BackgroundSize backgroundSize = new BackgroundSize(100, 20, true, true, true, false);
-        //BackgroundImage backgroundImage = new BackgroundImage(field, BackgroundRepeat.NO_REPEAT, BackgroundRepeat.NO_REPEAT, BackgroundPosition.CENTER, backgroundSize);
-        //Background background = new Background(backgroundImage);
-        //root.setBackground(background);
-
-        //StackPane stackPane = new StackPane();
-        //stackPane.setPrefSize(810, 450);
-        //stackPane.setAlignment(Pos.BOTTOM_CENTER);
-        
-        //stackPane.getChildren().add(img);
-        
-        //stackPane.getChildren().add(label);
-        
-        //stackPane.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
         
         Scene scene = new Scene(root, 870, 700);
         
@@ -134,44 +100,14 @@ public class FieldGUI extends Application {
 
     //Called by NetworkClient when data is recieved
     public void recieveData(String data) {
-        //System.out.println(data);
+        System.out.println(data);
         String[] message = data.split(" ");
         double x = Double.parseDouble(message[1]);
         double y = Double.parseDouble(message[2]);
 
-        rectangle.setX(x * 3);
-        rectangle.setY(y * 3);
+        circle.setCenterX(x * 5);
+        circle.setCenterY(y * 4);
     }
-
-    // EventHandler<ActionEvent> buttonHandler = new EventHandler<ActionEvent>() {
-    //     @Override
-    //     public void handle(ActionEvent event) {
-            
-    //         if(running){
-    //             b.setText("RESUME");
-    //             client.sendData("paused");
-    //             running = false;
-    //         } else {
-    //             b.setText("PAUSE");
-    //             client.sendData("resumed");
-    //             running = true;
-    //         }
-    //     }
-    // };
-   
-
-    //EventHandler<MouseEvent> mouseHandler = new EventHandler<MouseEvent>() {
- 
-        //@Override
-        //public void handle(MouseEvent mouseEvent) {
-            
-            //DecimalFormat decFormat = new DecimalFormat("#.0");
-            
-            //if ((mouseEvent.getX() - 33.5) > 0 && (mouseEvent.getX() - 33.5) < 788 && (mouseEvent.getY() - 31) > 0 && (mouseEvent.getY() - 31) < 385){
-                //System.out.println("(X,Y) : " + "(" + decFormat.format(((mouseEvent.getX() - 33.5) / 1.5 )) + " , " + decFormat.format(((mouseEvent.getY() - 31) / 1.5 )) + ")" +"\n");
-            //}
-        //}  
-    //};
     
     public static void main(String[] args) {
         Application.launch(args);
