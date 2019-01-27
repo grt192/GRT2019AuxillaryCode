@@ -67,7 +67,7 @@ public class FieldGUI extends Application {
         Label label = new Label("(x, y) --> ");
         label.setFont(new Font("Arial", 15));
 
-        Image field = new Image(getClass().getResourceAsStream("field3.png"));
+        Image field = new Image(getClass().getResourceAsStream("fieldclear_1.png"));
         ImageView img = new ImageView(field);
         
         img.setPickOnBounds(true);
@@ -76,8 +76,8 @@ public class FieldGUI extends Application {
         img.setFitWidth(870);
         img.setFitHeight(700);
         
-        root.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
-        root.getChildren().addAll(img, circle);
+        //root.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+        root.getChildren().addAll(circle);
 
         img.setOnMouseClicked((MouseEvent e) -> {
             double x = e.getX() / (0.65 * img.getFitWidth());
