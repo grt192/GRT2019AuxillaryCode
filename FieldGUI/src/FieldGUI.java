@@ -43,7 +43,8 @@ public class FieldGUI extends Application {
     
     private NetworkClient client;
 
-    private Circle circle;
+    private Circle circle = new Circle(50.0f, Color.RED);
+    private double newY, newX = 0;
     
     @Override
     public void start(Stage stage) throws Exception {
@@ -54,14 +55,8 @@ public class FieldGUI extends Application {
         }
         client.start();
 
-        circle = new Circle();
-        circle.setRadius(45);
-        circle.setCenterX(0);
-        circle.setCenterY(0);
-        circle.setManaged(false);
-
         Pane root = new Pane();
-        
+
         DecimalFormat decFormat = new DecimalFormat("#.0");
         
         Label label = new Label("(x, y) --> ");
@@ -77,7 +72,7 @@ public class FieldGUI extends Application {
         img.setFitHeight(700);
         
         //root.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
-        root.getChildren().addAll(circle);
+        root.getChildren().addAll(img, circle);
 
         img.setOnMouseClicked((MouseEvent e) -> {
             double x = e.getX() / (0.65 * img.getFitWidth());
@@ -102,11 +97,12 @@ public class FieldGUI extends Application {
     public void recieveData(String data) {
         System.out.println(data);
         String[] message = data.split(" ");
-        double x = Double.parseDouble(message[1]);
-        double y = Double.parseDouble(message[2]);
 
-        circle.setCenterX(x * 5);
-        circle.setCenterY(y * 4);
+        newX = Double.parseDouble(message[1]);
+        newY = Double.parseDouble(message[2]);
+
+        circle.setCenterX(newX);
+        circle.setCenterY(newY);
     }
     
     public static void main(String[] args) {
