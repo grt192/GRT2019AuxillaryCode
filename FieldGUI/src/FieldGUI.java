@@ -25,6 +25,7 @@ import javafx.scene.transform.Rotate;
 import javafx.scene.control.Button;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.scene.transform.Translate; 
 
 /**
  *
@@ -43,8 +44,8 @@ public class FieldGUI extends Application {
     
     private NetworkClient client;
 
-    private Circle circle = new Circle(50.0f, Color.RED);
-    private double newY, newX = 0;
+    private Circle circle = new Circle(60, Color.RED);
+    private double newX, newY;
     
     @Override
     public void start(Stage stage) throws Exception {
@@ -70,6 +71,9 @@ public class FieldGUI extends Application {
 
         img.setFitWidth(870);
         img.setFitHeight(700);
+
+        circle.setCenterX(newX * 5);
+        circle.setCenterY(newY * 5);
         
         //root.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
         root.getChildren().addAll(img, circle);
@@ -101,8 +105,9 @@ public class FieldGUI extends Application {
         newX = Double.parseDouble(message[1]);
         newY = Double.parseDouble(message[2]);
 
-        circle.setCenterX(newX);
-        circle.setCenterY(newY);
+        // circle.relocate(newX * 5, newY * 5);
+        circle.setCenterX(newX * 5);
+        circle.setCenterY(newY * 5);
     }
     
     public static void main(String[] args) {
