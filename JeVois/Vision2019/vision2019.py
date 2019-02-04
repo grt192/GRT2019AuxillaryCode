@@ -2,14 +2,15 @@ import libjevois as jevois
 import cv2
 import numpy as np
 import math
+import time
 
-## Detect hatch vision tape in Deep Space 2019
+## Vision 2019 without video streaming
 #
 #
 #
 # @author GRT
 # 
-# @videomapping YUYV 640 480 30 YUYV 640 480 30 GRT Vision2019
+# @videomapping YUYV 640 480 10 YUYV 640 480 10 GRT Vision2019
 # @email gunnrobotics192@gmail.com
 # @address 123 first street, Los Angeles CA 90012, USA
 # @copyright Copyright (C) 2018 by GRT
@@ -38,8 +39,8 @@ class Vision2019:
                                      ])
 
         self.objPoints = np.array([
-                                      [ -5.377, -5.325, 0 ],
                                       [ -7.313, -4.824, 0 ],
+                                      [ -5.377, -5.325, 0 ],
                                       [ -5.936, 0.501,  0 ],
                                       [ -4,     0,      0 ],
                                       [ 5.377,  -5.325, 0 ],
@@ -50,12 +51,17 @@ class Vision2019:
 
         self.distCoeffs = np.array([])
 
-        cpf = "/jevois/share/camera/calibration{}x{}.yaml".format(640, 480)
+        self.loaded = False
+
+    def loadCalibration(self, w, h):
+        cpf = "/jevois/share/camera/calibration{}x{}.yaml".format(w, h)
         fs = cv2.FileStorage(cpf, cv2.FILE_STORAGE_READ)
         if (fs.isOpened()):
             self.cameraMatrix = fs.getNode("camera_matrix").mat()
             self.distCoeffs = fs.getNode("distortion_coefficients").mat()
             jevois.LINFO("Loaded camera calibration from {}".format(cpf))
+
+            self.loaded = True
         else:
             jevois.LFATAL("Failed to read camera parameters from file [{}]".format(cpf))
         
@@ -65,6 +71,10 @@ class Vision2019:
         # Get the next camera image (may block until it is captured) and here convert it to OpenCV BGR. If you need a
         # grayscale image, just use getCvGRAY() instead of getCvBGR(). Also supported are getCvRGB() and getCvRGBA():
         inimg = inframe.getCvBGR()
+        h, w, chans = inimg.shape
+
+        if not self.loaded:
+            self.loadCalibration(w, h)
 
 
         imghsv = cv2.cvtColor(inimg, cv2.COLOR_BGR2HSV)
@@ -76,7 +86,7 @@ class Vision2019:
 
         if not hasattr(self, 'erodeElement'):
             self.erodeElement = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
-            self.dilateElement = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+            self.dilateElement = cv2.getStructuringElement(cv2.MORPH_RECT, (4, 4))
 
 
         img = cv2.erode(img, self.erodeElement)
@@ -91,10 +101,10 @@ class Vision2019:
         fps = self.timer.stop()
         # height = outimg.shape[0]
         # width = outimg.shape[1]
-        # cv2.putText(outimg, fps, (3, height - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
+        # cv2.putText(inimg, fps, (3, h - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
 
         # cv2.drawContours(inimg, biggest5, -1, (255,0,0), 3)
-        # cv2.drawContours(inimg, contours, -1, (255,0,0), 3)
+        cv2.drawContours(inimg, contours, -1, (255,0,0), 1)
         
         # 2 largest objects
         two_contours = sorted(contours, key = cv2.contourArea, reverse = True)[:2]
@@ -104,63 +114,125 @@ class Vision2019:
         cv2.putText(inimg, "GRT 2019 Vision", (5, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255),
                      1, cv2.LINE_AA)
         
+        valid = True
+
         points = []
 
         for contour in two_contours:
-            epsilon = 0.01 * cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, epsilon, False)
-            rows,cols = img.shape[:2]
-            vx,vy,x,y = cv2.fitLine(approx, cv2.DIST_L2,0,0.01,0.01)
-            lefty = int((-x*vy/vx) + y)
-            righty = int(((cols-x)*vy/vx)+y)
+            if cv2.contourArea(contour) < 500:
+                # INVALID: contour is too small
+                valid = False
 
-            try:
-                pass
-            except Exception as e:
-                jevois.sendSerial(str(e))
+            epsilon = 0.05 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+            
+            approx = np.squeeze(approx)
+            sums = approx.sum(axis = 1) #sum x and y coords
+            bottom_left = np.argmin(sums)
+            
+            
+
+            # rows,cols = img.shape[:2]
+            # vx,vy,x,y = cv2.fitLine(approx, cv2.DIST_L2,0,0.01,0.01)
+            # lefty = int((-x*vy/vx) + y)
+            # righty = int(((cols-x)*vy/vx)+y)
+
+            # try:
+            #     pass
+            # except Exception as e:
+            #     jevois.sendSerial(str(e))
 
             rect = cv2.minAreaRect(approx)
             box = cv2.boxPoints(rect)
 
             box = np.int0(box)
+
             angle = self.calc_angle(box)
+            if not (6 <= abs(math.degrees(angle)) <= 22):
+                # INVALID: angle of rectangle not close to 14.5
+                jevois.sendSerial("angle")
+                valid = False
+
             # self.draw_text(inimg, math.degrees(angle), box[0])
 
+            #jevois.sendSerial(str(quad_points))
+            if len(approx) != 4: #INVALID: polygon doesn't have 4 corners
+                
+                #jevois.sendSerial(str(box))
+                valid = False
+            else:
+                quad_points = np.array([
+                    approx[bottom_left],
+                    approx[(bottom_left + 1) % 4],
+                    approx[(bottom_left + 2) % 4],
+                    approx[(bottom_left + 3) % 4]
+                ])
+                
+                cv2.drawContours(inimg,[quad_points],0,(0,0,255),1)
+                
+                for point in quad_points:
+                    point[1] = h-point[1]
 
-            # points.append(approx) #USE POLYGON
-            # cv2.drawContours(inimg,[approx],0,(0,0,255),2)
+                points.append(quad_points) #USE POLYGON
+            
+            # jevois.sendSerial(str(box))
+            margin = 10
+            for v in box:
+                if v[0] < margin or v[0] >= w-margin or v[1] < margin or v[1] >= h-margin:
+                    # INVALID: too close to image borders
+                    jevois.sendSerial("too close")
+                    valid = False
+                    break
 
-            points.append(box) #USE RECTANGLE
-            cv2.drawContours(inimg,[box],0,(0,0,255),2)
+            # points.append(box) #USE RECTANGLE
+            # cv2.drawContours(inimg,[box],0,(0,0,255),2)
 
-
+        # self.draw_text(inimg, contour_area, (30, 115))
 
             # imgPoints = np.append(imgPoints, box)
+
+        points = np.array(points)
+
+        if not two_present or len(points) < 2:
+            # INVALID: only one contour found
+            jevois.sendSerial("one present")
+            valid = False
+        elif abs(points[0][:][1].argmin() - points[1][:][1].argmin()) > 80:
+            # INVALID: height difference between two rectangles is too high (should be horizontal)
+            jevois.sendSerial("height diff")
+            valid = False
+        
 
         # imgPoints = imgPoints.reshape(-1, 2)
         # jevois.sendSerial(str(imgPoints))
 
-        if two_present:
+        self.draw_text(inimg, valid, (30, 45))
+
+        if valid:
             #comparing x value of first point in both rectangles since order of solvepnp matters
             if points[0][0][0] < points[1][0][0]:
                 imgPoints = np.append(np.append(np.array([]), points[0]), points[1])
             else:
                 imgPoints = np.append(np.append(np.array([]), points[1]), points[0])
 
-            imgPoints = imgPoints.reshape(-1, 2)
+            #imgPoints = imgPoints.reshape(-1, 2)
+            imgPoints = np.array(points, dtype=np.float).reshape(8, 2)
 
-            jevois.sendSerial(str(imgPoints.shape))
+            jevois.sendSerial(str(imgPoints))
+            jevois.sendSerial(str(self.objPoints))
 
             retval, revec, tvec = cv2.solvePnP(self.objPoints, imgPoints, self.cameraMatrix, self.distCoeffs)
+            
+            jevois.sendSerial("{} {} {} {} {} {} {} {}".format(time.time(), retval, tvec[0][0], tvec[1][0], tvec[2][0], revec[0][0], revec[1][0], revec[2][0]))
             # jevois.sendSerial(str(retval))
             # jevois.sendSerial(str(revec))
-            jevois.sendSerial(str(revec))
+            # jevois.sendSerial(str(revec))
             # jevois.sendSerial(".   .")
             self.draw_text(inimg, "translation: x{:=5.2f} y{:=3.2f} z{:=3.2f}".format(tvec[0][0], tvec[1][0], tvec[2][0]), (30, 30))
             self.draw_text(inimg, "rotation: x{:=3.2f} y{:=3.2f} z{:=3.2f}".format(math.degrees(revec[0][0]), math.degrees(revec[1][0]), math.degrees(revec[2][0])), (30, 45))
 
 
-            #cv2.drawContours(inimg, [contour], -1, (255,0,0), 3)
+            # cv2.drawContours(inimg, [contour], -1, (255,0,0), 3)
 
         #jevois.sendSerial(".  .")
         # for c in contours:
@@ -169,7 +241,11 @@ class Vision2019:
 
 
         # Convert our output image to video output format and send to host over USB:
-        outframe.sendCv(inimg)
+        if outframe:
+            outframe.sendCv(inimg)
+
+    def processNoUSB(self, inframe):
+        return process(inframe)
         
 
     def calc_angle(self, points):
@@ -197,3 +273,4 @@ class Vision2019:
 
     def draw_text(self, img, text, point, offset=0):
         cv2.putText(img, str(text), (int(point[0]-20), int(point[1]+20 + offset)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)
+        pass
