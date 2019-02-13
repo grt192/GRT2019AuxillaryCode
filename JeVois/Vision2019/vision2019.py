@@ -53,6 +53,8 @@ class Vision2019:
 
         self.loaded = False
 
+        self.outframe = None
+
     def loadCalibration(self, w, h):
         cpf = "/jevois/share/camera/calibration{}x{}.yaml".format(w, h)
         fs = cv2.FileStorage(cpf, cv2.FILE_STORAGE_READ)
@@ -68,6 +70,8 @@ class Vision2019:
     # ###################################################################################################
     ## Process function with USB output
     def process(self, inframe, outframe=None):
+        self.outframe = outframe
+
         # Get the next camera image (may block until it is captured) and here convert it to OpenCV BGR. If you need a
         # grayscale image, just use getCvGRAY() instead of getCvBGR(). Also supported are getCvRGB() and getCvRGBA():
         inimg = inframe.getCvBGR()
@@ -104,14 +108,14 @@ class Vision2019:
         # cv2.putText(inimg, fps, (3, h - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
 
         # cv2.drawContours(inimg, biggest5, -1, (255,0,0), 3)
-        cv2.drawContours(inimg, contours, -1, (255,0,0), 1)
+        # cv2.drawContours(inimg, contours, -1, (255,0,0), 1)
         
         # 2 largest objects
         two_contours = sorted(contours, key = cv2.contourArea, reverse = True)[:2]
 
         two_present = (len(two_contours) == 2)
         
-        cv2.putText(inimg, "GRT 2019 Vision", (5, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255),
+        self.putText(inimg, "GRT 2019 Vision", (5, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255),
                      1, cv2.LINE_AA)
         
         valid = True
@@ -148,9 +152,10 @@ class Vision2019:
             box = np.int0(box)
 
             angle = self.calc_angle(box)
-            if not (6 <= abs(math.degrees(angle)) <= 22):
+            self.draw_text(inimg, str(math.degrees(angle)), (box[0][0], box[0][1]))
+            if not (6 <= abs(math.degrees(angle)) <= 23):
                 # INVALID: angle of rectangle not close to 14.5
-                jevois.sendSerial("angle")
+                self.sendSerial("angle")
                 valid = False
 
             # self.draw_text(inimg, math.degrees(angle), box[0])
@@ -168,7 +173,7 @@ class Vision2019:
                     approx[(bottom_left + 3) % 4]
                 ])
                 
-                cv2.drawContours(inimg,[quad_points],0,(0,0,255),1)
+                # cv2.drawContours(inimg,[quad_points],0,(0,0,255),1)
                 
                 for point in quad_points:
                     point[1] = h-point[1]
@@ -180,7 +185,7 @@ class Vision2019:
             for v in box:
                 if v[0] < margin or v[0] >= w-margin or v[1] < margin or v[1] >= h-margin:
                     # INVALID: too close to image borders
-                    jevois.sendSerial("too close")
+                    # jevois.sendSerial("too close")
                     valid = False
                     break
 
@@ -195,18 +200,18 @@ class Vision2019:
 
         if not two_present or len(points) < 2:
             # INVALID: only one contour found
-            jevois.sendSerial("one present")
+            # jevois.sendSerial("one present")
             valid = False
         elif abs(points[0][:][1].argmin() - points[1][:][1].argmin()) > 80:
             # INVALID: height difference between two rectangles is too high (should be horizontal)
-            jevois.sendSerial("height diff")
+            # jevois.sendSerial("height diff")
             valid = False
         
 
         # imgPoints = imgPoints.reshape(-1, 2)
         # jevois.sendSerial(str(imgPoints))
 
-        self.draw_text(inimg, valid, (30, 45))
+        # self.draw_text(inimg, valid, (30, 45))
 
         if valid:
             #comparing x value of first point in both rectangles since order of solvepnp matters
@@ -218,8 +223,8 @@ class Vision2019:
             #imgPoints = imgPoints.reshape(-1, 2)
             imgPoints = np.array(points, dtype=np.float).reshape(8, 2)
 
-            jevois.sendSerial(str(imgPoints))
-            jevois.sendSerial(str(self.objPoints))
+            self.sendSerial(str(imgPoints))
+            self.sendSerial(str(self.objPoints))
 
             retval, revec, tvec = cv2.solvePnP(self.objPoints, imgPoints, self.cameraMatrix, self.distCoeffs)
             
@@ -245,7 +250,24 @@ class Vision2019:
             outframe.sendCv(inimg)
 
     def processNoUSB(self, inframe):
-        return process(inframe)
+        return self.process(inframe)
+
+
+    # METHODS FOR Vision2019 WITH VIDEO OUTPUT (debug only)
+
+    def drawContours(self, *args, **kwargs):
+        if self.outframe:
+            cv2.drawContours(*args, **kwargs)
+
+    def putText(self, *args, **kwargs):
+        if self.outframe:
+            cv2.putText(*args, **kwargs)
+
+    def sendSerial(self, *args, **kwargs):
+        if self.outframe:
+            jevois.sendSerial(*args, **kwargs)
+
+    ###
         
 
     def calc_angle(self, points):
@@ -257,15 +279,21 @@ class Vision2019:
         Down is 0, right is pi/2
         -pi/2 <= n <= pi/2
         """
-        lowest_point = points[0]
-        far_point = None
-        if (self.calc_dist(points[0], points[1]) > self.calc_dist(points[0], points[3])):
-            far_point = points[1]
-        else:
-            far_point = points[3]
+        
+        points = np.squeeze(points)
+        sums = points.sum(axis = 1) #sum x and y coords
+        first = np.argmin(sums)
+        
+        bottom_left = points[first]
+        top_left = points[(first + 1) % 4]
+        
+        bottom_right = points[(first + 3) % 4]
+        top_right = points[(first + 2) % 4]
+        
+        x_diff = ( (bottom_left[0] - top_left[0]) + (bottom_right[0] - top_right[0]) ) / 2
+        y_diff = ( (bottom_left[1] - top_left[1]) + (bottom_right[1] - top_right[1]) ) / 2
 
-        return math.atan( (lowest_point[0] - far_point[0]) / abs(lowest_point[1] - far_point[1]) )
-
+        return 3.141592/2 + math.atan2( (x_diff), abs(y_diff) )
 
     def calc_dist(self, point1, point2):
         return math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
