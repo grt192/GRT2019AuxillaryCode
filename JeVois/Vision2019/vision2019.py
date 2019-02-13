@@ -37,17 +37,18 @@ class Vision2019:
                                          [ 0,          492.072922, 240 ],
                                          [ 0,          0,          1   ]
                                      ])
-
-        self.objPoints = np.array([
-                                      [ -7.313, -4.824, 0 ],
-                                      [ -5.377, -5.325, 0 ],
-                                      [ -5.936, 0.501,  0 ],
-                                      [ -4,     0,      0 ],
-                                      [ 5.377,  -5.325, 0 ],
-                                      [ 4,      0,      0 ],
-                                      [ 5.936,  0.501,  0 ],
-                                      [ 7.313, -4.824,  0 ]
-                                  ])
+        self.objPoints = [
+                                      [ -7.313, 4.824,  0 ], # min x
+                                      [ -4,     0,      0 ], # max x
+                                      [ -5.936, -0.501, 0 ], # min y
+                                      [ -5.377, 5.325,  0 ], # max y
+                                      [ 4,      0,      0 ], # min x
+                                      [ 7.313, 4.824,   0 ], # max x
+                                      [ 5.936,  -0.501, 0 ], # min y
+                                      [ 5.377,  5.325,  0 ]  # max y
+                        ]
+        self.objPoints = np.array(self.objPoints)
+        jevois.sendSerial(str(self.objPoints))
 
         self.distCoeffs = np.array([])
 
@@ -82,14 +83,12 @@ class Vision2019:
 
 
         imghsv = cv2.cvtColor(inimg, cv2.COLOR_BGR2HSV)
-        
-        # Start measuring image processing time (NOTE: does not account for input conversion time):
-        self.timer.start()
 
         img = cv2.inRange(imghsv, self.HSVmin, self.HSVmax)
+        inimg = cv2.bitwise_and(inimg, inimg, mask=cv2.bitwise_not(img))
 
         if not hasattr(self, 'erodeElement'):
-            self.erodeElement = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+            self.erodeElement = cv2.getStructuringElement(cv2.MORPH_RECT, (4, 4))
             self.dilateElement = cv2.getStructuringElement(cv2.MORPH_RECT, (4, 4))
 
 
@@ -97,20 +96,6 @@ class Vision2019:
         img = cv2.dilate(img, self.dilateElement)
 
         contours, hierarchy = cv2.findContours(img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-        # biggest5 = sorted(contours, key=cv2.contourArea, reverse=True)[:5]
-        # Write a title:
-        # cv2.putText(outimg, "JeVois VisionTestChris", (3, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-        
-        # Write frames/s info from our timer into the edge map (NOTE: does not account for output conversion time):
-        fps = self.timer.stop()
-        # height = outimg.shape[0]
-        # width = outimg.shape[1]
-        # cv2.putText(inimg, fps, (3, h - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255))
-
-        # cv2.drawContours(inimg, biggest5, -1, (255,0,0), 3)
-        # cv2.drawContours(inimg, contours, -1, (255,0,0), 1)
-        
-        # 2 largest objects
         two_contours = sorted(contours, key = cv2.contourArea, reverse = True)[:2]
 
         two_present = (len(two_contours) == 2)
@@ -120,132 +105,66 @@ class Vision2019:
         
         valid = True
 
-        points = []
+        points = np.ndarray((8, 2), dtype=np.float32)
+
+        left_contour = None
+        right_contour = None
+        if two_present:
+            if two_contours[0][0, 0, 0] < two_contours[1][0, 0, 0]:
+                left_contour = two_contours[0]
+                right_contour = two_contours[1]
+            else:
+                left_contour = two_contours[1]
+                right_contour = two_contours[0]
+            self.drawContours(inimg, [left_contour, right_contour], -1, (0, 255, 255), thickness=-1)
+
+            left_contour = np.squeeze(left_contour)
+            points[0] = self.minmax(left_contour, 0, 1, -1, 1) # min x
+            points[1] = self.minmax(left_contour, 0, 1, 1, -1) # max x
+            points[2] = self.minmax(left_contour, 1, 0, -1, -1) # min y
+            points[3] = self.minmax(left_contour, 1, 0, 1, 1) # max y
+            right_contour = np.squeeze(right_contour)
+            points[4] = self.minmax(right_contour, 0, 1, -1, -1) # min x
+            points[5] = self.minmax(right_contour, 0, 1, 1, 1) # max x
+            points[6] = self.minmax(right_contour, 1, 0, -1, 1) # min y
+            points[7] = self.minmax(right_contour, 1, 0, 1, -1) # max y
+
+            angles = np.ndarray((4,), dtype=np.float32)
+            angles[0] = self.calc_angle(points[2], points[0])
+            angles[1] = self.calc_angle(points[1], points[3])
+            angles[2] = self.calc_angle(points[4], points[7])
+            angles[3] = self.calc_angle(points[6], points[5])
+            if np.amax(np.abs(angles - 14.5)) > 5:
+                valid = False
+        else:
+            valid = False
 
         for contour in two_contours:
             if cv2.contourArea(contour) < 500:
                 # INVALID: contour is too small
                 valid = False
-
-            epsilon = 0.05 * cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, epsilon, True)
-            
-            approx = np.squeeze(approx)
-            sums = approx.sum(axis = 1) #sum x and y coords
-            bottom_left = np.argmin(sums)
-            
-            
-
-            # rows,cols = img.shape[:2]
-            # vx,vy,x,y = cv2.fitLine(approx, cv2.DIST_L2,0,0.01,0.01)
-            # lefty = int((-x*vy/vx) + y)
-            # righty = int(((cols-x)*vy/vx)+y)
-
-            # try:
-            #     pass
-            # except Exception as e:
-            #     jevois.sendSerial(str(e))
-
-            rect = cv2.minAreaRect(approx)
-            box = cv2.boxPoints(rect)
-
-            box = np.int0(box)
-
-            angle = self.calc_angle(box)
-            self.draw_text(inimg, str(math.degrees(angle)), (box[0][0], box[0][1]))
-            if not (6 <= abs(math.degrees(angle)) <= 23):
-                # INVALID: angle of rectangle not close to 14.5
-                self.sendSerial("angle")
-                valid = False
-
-            # self.draw_text(inimg, math.degrees(angle), box[0])
-
-            #jevois.sendSerial(str(quad_points))
-            if len(approx) != 4: #INVALID: polygon doesn't have 4 corners
-                
-                #jevois.sendSerial(str(box))
-                valid = False
-            else:
-                quad_points = np.array([
-                    approx[bottom_left],
-                    approx[(bottom_left + 1) % 4],
-                    approx[(bottom_left + 2) % 4],
-                    approx[(bottom_left + 3) % 4]
-                ])
-                
-                # cv2.drawContours(inimg,[quad_points],0,(0,0,255),1)
-                
-                for point in quad_points:
-                    point[1] = h-point[1]
-
-                points.append(quad_points) #USE POLYGON
-            
-            # jevois.sendSerial(str(box))
-            margin = 10
-            for v in box:
-                if v[0] < margin or v[0] >= w-margin or v[1] < margin or v[1] >= h-margin:
-                    # INVALID: too close to image borders
-                    # jevois.sendSerial("too close")
-                    valid = False
-                    break
-
-            # points.append(box) #USE RECTANGLE
-            # cv2.drawContours(inimg,[box],0,(0,0,255),2)
-
-        # self.draw_text(inimg, contour_area, (30, 115))
-
-            # imgPoints = np.append(imgPoints, box)
-
-        points = np.array(points)
-
-        if not two_present or len(points) < 2:
-            # INVALID: only one contour found
-            # jevois.sendSerial("one present")
-            valid = False
-        elif abs(points[0][:][1].argmin() - points[1][:][1].argmin()) > 80:
-            # INVALID: height difference between two rectangles is too high (should be horizontal)
-            # jevois.sendSerial("height diff")
-            valid = False
         
+        margin = 10
+        for v in points:
+            if v[0] < margin or v[0] >= w-margin or v[1] < margin or v[1] >= h-margin:
+                valid = False
 
-        # imgPoints = imgPoints.reshape(-1, 2)
-        # jevois.sendSerial(str(imgPoints))
+        points = np.array(points, dtype=np.float32)
+        for i in range(len(points)):
+            self.drawCircle(inimg, (points[i,0], points[i,1]), 1, (255, 0, 0), 1)
 
-        # self.draw_text(inimg, valid, (30, 45))
+        if len(points) != 8:
+            valid = False
 
         if valid:
-            #comparing x value of first point in both rectangles since order of solvepnp matters
-            if points[0][0][0] < points[1][0][0]:
-                imgPoints = np.append(np.append(np.array([]), points[0]), points[1])
-            else:
-                imgPoints = np.append(np.append(np.array([]), points[1]), points[0])
+            retval, revec, tvec, inliers = cv2.solvePnPRansac(self.objPoints, points, self.cameraMatrix, self.distCoeffs)
 
-            #imgPoints = imgPoints.reshape(-1, 2)
-            imgPoints = np.array(points, dtype=np.float).reshape(8, 2)
-
-            self.sendSerial(str(imgPoints))
-            self.sendSerial(str(self.objPoints))
-
-            retval, revec, tvec = cv2.solvePnP(self.objPoints, imgPoints, self.cameraMatrix, self.distCoeffs)
             
-            jevois.sendSerial("{} {} {} {} {} {} {} {}".format(time.time(), retval, tvec[0][0], tvec[1][0], tvec[2][0], revec[0][0], revec[1][0], revec[2][0]))
-            # jevois.sendSerial(str(retval))
-            # jevois.sendSerial(str(revec))
-            # jevois.sendSerial(str(revec))
-            # jevois.sendSerial(".   .")
+            #jevois.sendSerial("{} {} {} {} {} {} {} {}".format(time.time(), retval, tvec[0][0], tvec[1][0], tvec[2][0], revec[0][0], revec[1][0], revec[2][0]))
             self.draw_text(inimg, "translation: x{:=5.2f} y{:=3.2f} z{:=3.2f}".format(tvec[0][0], tvec[1][0], tvec[2][0]), (30, 30))
             self.draw_text(inimg, "rotation: x{:=3.2f} y{:=3.2f} z{:=3.2f}".format(math.degrees(revec[0][0]), math.degrees(revec[1][0]), math.degrees(revec[2][0])), (30, 45))
 
 
-            # cv2.drawContours(inimg, [contour], -1, (255,0,0), 3)
-
-        #jevois.sendSerial(".  .")
-        # for c in contours:
-            
-
-
-
-        # Convert our output image to video output format and send to host over USB:
         if outframe:
             outframe.sendCv(inimg)
 
@@ -259,6 +178,10 @@ class Vision2019:
         if self.outframe:
             cv2.drawContours(*args, **kwargs)
 
+    def drawCircle(self, *args, **kwargs):
+        if self.outframe:
+            cv2.circle(*args, **kwargs)
+
     def putText(self, *args, **kwargs):
         if self.outframe:
             cv2.putText(*args, **kwargs)
@@ -270,7 +193,7 @@ class Vision2019:
     ###
         
 
-    def calc_angle(self, points):
+    def calc_angle(self, pt1, pt2):
         """
         Returns the angle a rectangle is pointing towards
 
@@ -279,21 +202,7 @@ class Vision2019:
         Down is 0, right is pi/2
         -pi/2 <= n <= pi/2
         """
-        
-        points = np.squeeze(points)
-        sums = points.sum(axis = 1) #sum x and y coords
-        first = np.argmin(sums)
-        
-        bottom_left = points[first]
-        top_left = points[(first + 1) % 4]
-        
-        bottom_right = points[(first + 3) % 4]
-        top_right = points[(first + 2) % 4]
-        
-        x_diff = ( (bottom_left[0] - top_left[0]) + (bottom_right[0] - top_right[0]) ) / 2
-        y_diff = ( (bottom_left[1] - top_left[1]) + (bottom_right[1] - top_right[1]) ) / 2
-
-        return 3.141592/2 + math.atan2( (x_diff), abs(y_diff) )
+        return abs(math.atan2(pt2[0] - pt1[0], pt2[1] - pt1[1]) * 180 / math.pi)
 
     def calc_dist(self, point1, point2):
         return math.sqrt(math.pow(point1[0] - point2[0], 2) + math.pow(point1[1] - point2[1], 2))
@@ -302,3 +211,7 @@ class Vision2019:
     def draw_text(self, img, text, point, offset=0):
         cv2.putText(img, str(text), (int(point[0]-20), int(point[1]+20 + offset)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)
         pass
+
+    def minmax(self, arr, major_axis, minor_axis, dir1, dir2, big_number = 1000.0):
+        scores = arr[:, major_axis] * dir1 + arr[:, minor_axis] * (dir2 / big_number)
+        return arr[scores.argmax()]
