@@ -37,16 +37,18 @@ class Vision2019:
                                          [ 0,          492.072922, 240 ],
                                          [ 0,          0,          1   ]
                                      ])
-        self.objPoints = [
-                                      [ -7.313, 4.824,  0 ], # min x
-                                      [ -4,     0,      0 ], # max x
-                                      [ -5.936, -0.501, 0 ], # min y
-                                      [ -5.377, 5.325,  0 ], # max y
-                                      [ 4,      0,      0 ], # min x
-                                      [ 7.313, 4.824,   0 ], # max x
-                                      [ 5.936,  -0.501, 0 ], # min y
-                                      [ 5.377,  5.325,  0 ]  # max y
-                        ]
+        self.objPoints = []
+        # left
+        self.objPoints.append([ -7.313, 4.824,  0 ]) # min x
+        self.objPoints.append([ -4,     0,      0 ]) # max x
+        self.objPoints.append([ -5.936, -0.501, 0 ]) # min y
+        # self.objPoints.append([ -5.377, 5.325,  0 ]) # max y (covered by hatch)
+        # right
+        self.objPoints.append([ 4,      0,      0 ]) # min x
+        self.objPoints.append([ 7.313, 4.824,   0 ]) # max x
+        self.objPoints.append([ 5.936,  -0.501, 0 ]) # min y
+        # self.objPoints.append([ 5.377,  5.325,  0 ])  # max y (covered by hatch)
+
         self.objPoints = np.array(self.objPoints)
         jevois.sendSerial(str(self.objPoints))
 
@@ -105,7 +107,7 @@ class Vision2019:
         
         valid = True
 
-        points = np.ndarray((8, 2), dtype=np.float32)
+        points = []
 
         left_contour = None
         right_contour = None
@@ -119,21 +121,27 @@ class Vision2019:
             self.drawContours(inimg, [left_contour, right_contour], -1, (0, 255, 255), thickness=-1)
 
             left_contour = np.squeeze(left_contour)
-            points[0] = self.minmax(left_contour, 0, 1, -1, 1) # min x
-            points[1] = self.minmax(left_contour, 0, 1, 1, -1) # max x
-            points[2] = self.minmax(left_contour, 1, 0, -1, -1) # min y
-            points[3] = self.minmax(left_contour, 1, 0, 1, 1) # max y
             right_contour = np.squeeze(right_contour)
-            points[4] = self.minmax(right_contour, 0, 1, -1, -1) # min x
-            points[5] = self.minmax(right_contour, 0, 1, 1, 1) # max x
-            points[6] = self.minmax(right_contour, 1, 0, -1, 1) # min y
-            points[7] = self.minmax(right_contour, 1, 0, 1, -1) # max y
 
-            angles = np.ndarray((4,), dtype=np.float32)
-            angles[0] = self.calc_angle(points[2], points[0])
-            angles[1] = self.calc_angle(points[1], points[3])
-            angles[2] = self.calc_angle(points[4], points[7])
-            angles[3] = self.calc_angle(points[6], points[5])
+            # left
+            points.append(self.minmax(left_contour, 0, 1, -1, 1)) # min x
+            points.append(self.minmax(left_contour, 0, 1, 1, -1)) # max x
+            points.append(self.minmax(left_contour, 1, 0, -1, -1)) # min y
+            # points.append(self.minmax(left_contour, 1, 0, 1, 1)) # max y (covered by hatch)
+            # right
+            points.append(self.minmax(right_contour, 0, 1, -1, -1)) # min x
+            points.append(self.minmax(right_contour, 0, 1, 1, 1)) # max x
+            points.append(self.minmax(right_contour, 1, 0, -1, 1)) # min y
+            # points.append(self.minmax(right_contour, 1, 0, 1, -1)) # max y  (covered by hatch)
+
+            points = np.array(points, dtype=np.float32)
+
+            angles = []
+            angles.append(self.calc_angle(points[2], points[0]))
+            # angles.append(self.calc_angle(points[1], points[3])) (covered by hatch)
+            # angles.append(self.calc_angle(points[4], points[7])) (covered by hatch)
+            angles.append(self.calc_angle(points[5], points[4]))
+            angles = np.array(angles)
             if np.amax(np.abs(angles - 14.5)) > 5:
                 valid = False
         else:
@@ -153,14 +161,14 @@ class Vision2019:
         for i in range(len(points)):
             self.drawCircle(inimg, (points[i,0], points[i,1]), 1, (255, 0, 0), 1)
 
-        if len(points) != 8:
+        if len(points) != 6:
             valid = False
 
         if valid:
             retval, revec, tvec, inliers = cv2.solvePnPRansac(self.objPoints, points, self.cameraMatrix, self.distCoeffs)
 
             
-            #jevois.sendSerial("{} {} {} {} {} {} {} {}".format(time.time(), retval, tvec[0][0], tvec[1][0], tvec[2][0], revec[0][0], revec[1][0], revec[2][0]))
+            jevois.sendSerial("{} {} {} {} {} {} {} {}".format(time.time(), retval, tvec[0][0], tvec[1][0], tvec[2][0], revec[0][0], revec[1][0], revec[2][0]))
             self.draw_text(inimg, "translation: x{:=5.2f} y{:=3.2f} z{:=3.2f}".format(tvec[0][0], tvec[1][0], tvec[2][0]), (30, 30))
             self.draw_text(inimg, "rotation: x{:=3.2f} y{:=3.2f} z{:=3.2f}".format(math.degrees(revec[0][0]), math.degrees(revec[1][0]), math.degrees(revec[2][0])), (30, 45))
 
@@ -195,12 +203,7 @@ class Vision2019:
 
     def calc_angle(self, pt1, pt2):
         """
-        Returns the angle a rectangle is pointing towards
-
-        Points should be ordered so that lowest is first, rest follow counter clockwise
-        
-        Down is 0, right is pi/2
-        -pi/2 <= n <= pi/2
+        Return angle from upper to lower point, should be ~14.5
         """
         return abs(math.atan2(pt2[0] - pt1[0], pt2[1] - pt1[1]) * 180 / math.pi)
 
